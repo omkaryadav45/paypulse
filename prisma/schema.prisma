@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// NOTE: SQLite has no native enums. Enum-like fields are stored as strings and
+// validated at the application layer with Zod. Switching to Postgres later
+// requires no data-shape changes.
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("ANALYST") // ADMIN | ANALYST
+  createdAt    DateTime @default(now())
+}
+
+model Merchant {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  category     String // Retail | Travel | SaaS | Food | Gaming ...
+  mcc          String // merchant category code
+  country      String        @default("US")
+  status       String        @default("ACTIVE") // ACTIVE | INACTIVE | SUSPENDED
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+  feeCodes     FeeCode[]
+
+  @@index([status])
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  amount     Float // major units (e.g. dollars)
+  currency   String   @default("USD")
+  status     String   @default("SUCCESS") // SUCCESS | FAILED | PENDING | REFUNDED
+  method     String   @default("CARD") // CARD | ACH | WALLET
+  cardBrand  String? // VISA | MASTERCARD | AMEX
+  fee        Float    @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([merchantId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model FeeCode {
+  id         String    @id @default(cuid())
+  merchantId String?
+  merchant   Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name       String
+  code       String
+  type       String    @default("PERCENTAGE") // PERCENTAGE | FLAT | INTERCHANGE
+  rate       Float     @default(0) // percentage / interchange rate
+  perItem    Float     @default(0) // flat per-item fee
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+
+  @@index([merchantId])
+}
