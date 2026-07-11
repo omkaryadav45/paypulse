@@ -3,7 +3,10 @@ import bcrypt from "bcryptjs";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "../src/generated/prisma/client";
 
-const adapter = new PrismaLibSql({ url: process.env.DATABASE_URL ?? "file:./dev.db" });
+const adapter = new PrismaLibSql({ 
+  url: process.env.DATABASE_URL ?? "file:./dev.db",
+  authToken: process.env.DATABASE_AUTH_TOKEN ?? undefined 
+});
 const prisma = new PrismaClient({ adapter });
 
 // ---------- deterministic RNG (mulberry32) for reproducible seed data ----------
