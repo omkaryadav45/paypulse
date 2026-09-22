@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import {
   convertToModelMessages,
   stepCountIs,
@@ -29,13 +29,14 @@ Rules:
 
 export async function POST(req: Request) {
   const session = await getSession();
+
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return new Response(
-      "The AI Assistant is not configured yet. Add an OPENAI_API_KEY environment variable (or swap the provider in src/app/api/chat/route.ts) to enable it.",
+      "The AI Assistant is not configured yet. Add a GOOGLE_GENERATIVE_AI_API_KEY environment variable to enable it.",
       { status: 503 },
     );
   }
@@ -45,10 +46,11 @@ export async function POST(req: Request) {
   const modelMessages = await convertToModelMessages(messages);
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: google("gemini-2.5-flash"),
     system: SYSTEM_PROMPT,
     messages: modelMessages,
     stopWhen: stepCountIs(5),
+
     tools: {
       getPaymentsOverview: tool({
         description:
@@ -56,6 +58,7 @@ export async function POST(req: Request) {
         inputSchema: z.object({}),
         execute: async () => getKpis(),
       }),
+
       getTopMerchants: tool({
         description: "Get the top merchants ranked by successful revenue.",
         inputSchema: z.object({
@@ -68,12 +71,14 @@ export async function POST(req: Request) {
         }),
         execute: async ({ limit }) => getTopMerchants(limit),
       }),
+
       getTransactionStatusBreakdown: tool({
         description:
           "Get the count of transactions grouped by status: SUCCESS, FAILED, PENDING, REFUNDED.",
         inputSchema: z.object({}),
         execute: async () => getStatusBreakdown(),
       }),
+
       getRevenueByMethod: tool({
         description:
           "Get successful revenue grouped by payment method: CARD, ACH, WALLET.",
