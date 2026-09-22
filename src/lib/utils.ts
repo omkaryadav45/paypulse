@@ -21,6 +21,7 @@ export function formatCompactCurrency(amount: number, currency = "USD") {
     currency,
     notation: "compact",
     maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
   }).format(amount);
 }
 
